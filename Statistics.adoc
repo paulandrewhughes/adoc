@@ -522,7 +522,7 @@ Only release reasons that have non-zero values are displayed in the output.
 
 
 
-[cols="1,1", frame="none"]
+[cols="1,1a", frame="none"]
 |===
 
 |Command
@@ -531,7 +531,7 @@ Only release reasons that have non-zero values are displayed in the output.
 
 
 
-[cols="1,1", frame="none"]
+[cols="1,1a", frame="none"]
 |===
 
 |Resulting MP Report
@@ -551,7 +551,7 @@ Output: default
 
 
 
-[cols="1,1", frame="none"]
+[cols="1,1a", frame="none"]
 |===
 
 |Statistics file
@@ -577,7 +577,7 @@ The [app]``MGCP-SUMMARY`` statistics summarises the MGCP message totals that are
 ==== MGCP-SUMMARY Categories
 
 .MGCP-SUMMARY Categories
-[cols="1,1,1", frame="topbot", options="header"]
+[cols="1,5,1", frame="topbot", options="header"]
 |===
 | Category
 | Description
@@ -664,7 +664,7 @@ This item counts all attempted security breaches of the call agent through MGCP.
 
 
 
-[cols="1,1", frame="none"]
+[cols="1,1a", frame="none"]
 |===
 
 |Command
@@ -673,7 +673,7 @@ This item counts all attempted security breaches of the call agent through MGCP.
 
 
 
-[cols="1,1", frame="none"]
+[cols="1,1a", frame="none"]
 |===
 
 |Resulting MP Report
@@ -699,7 +699,7 @@ The [app]``MGCP-DETAILED`` statistics records totals for all MGCP messages sent 
 ==== MGCP-DETAILED Categories
 
 .MGCP-DETAILED Categories.
-[cols="1,1,1", frame="topbot", options="header"]
+[cols="1,1a,1a", frame="topbot", options="header"]
 |===
 | Category
 | Description
