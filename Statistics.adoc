@@ -1,0 +1,1394 @@
+[[_chapter_chapter32statistics]]
+= Statistics
+:sectnums:
+:toc: left
+:icons: font
+:sourcedir: .[[_statistics.xml_63886]]
+
+This chapter contains information about statistics in the _openCA_ softswitch. 
+
+== Statistics
+
+A statistics measurement program retrieves statistics from the system at selected periods.
+These statistics are then sent as output to the location configured for the measurement program (see <<configfiles.adoc#13993,Configuration Files>> for more information). Statistics can be either absolute or relative and can have simple counts or timers. 
+
+.Statistic types available in _openCA_
+[cols="1a,1a", frame="topbot", options="header"]
+|===
+| Statistic Type
+| Description
+
+|absolute counts
+|These statistics are viewed at an instant in time. For example:
+
+
+* calls in progress
+
+* circuits available
+
+
+|
+relative counts
+|These statistics give activity counts over a period of time. For example:
+
+* average queue length per 5 minute time interval
+* number of calls attempted in a time interval
+
+
+|
+relative timers
+|These statistics are used to:
+
+* average absolute counts over a time period
+* measure the availability of resources (for example, the length of time that a call agent has been active)
+
+|===
+
+=== Domains, Categories and Items[[_statistics.xml_62184]]
+
+The statistics that can be reported for a call agent are broken down into domains, categories and items. 
+
+==== Domain[[_statistics.xml_57176]]
+
+A domain is a statistical area of interest, for example the [app]``PERFORMANCE`` domain reports on various statistics that allow the performance of the call agent to be monitored, while the [app]``CALL-SUMMARY`` domain reports on various statistics relating to call rates, successes and failures. 
+
+==== Category[[_statistics.xml_63256]]
+
+A category is a subdivision of a domain, generally breaking down the domain into different types of interest, for example, in the [app]``PERFORMANCE`` domain, there are different categories for the 5-minute [app]``AVERAGE``, [app]``MINIMUM`` and [app]``MAXIMUM`` value of each of the items being monitored.
+Similarly, in the [app]``CALL-SUMMARY`` and [app]``CALL-RELEASE-REASONS`` domain, there is a different category for each call control protocol supported by the call agent, each route direction, and each call-limit-group direction, so that each measured item can be reported on a per-protocol basis, per route direction basis, or per call-limit-group direction basis. 
+
+==== Item[[_statistics.xml_13459]]
+
+An item indicates an item whose value can be measured in each of the categories of the domain, for example, in the [app]``PERFORMANCE`` domain, an item exists for [app]``SigMessagesQueueLength`` (the number of signalling messages in the call agent internal queue), while in the [app]``CALL-SUMMARY`` domain, an item exists for [app]``CallsAttempted`` (the number of call attempts received by the call agent). 
+
+A statistic (counter or timer) exists for each Item in each category; therefore, based on the above examples, in the [app]``PERFORMANCE`` Domain, there will be separate counters indicating the [app]``AVERAGE``, [app]``MINIMUM`` and [app]``MAXIMUM`` value of the [app]``SigMessagesQueueLength`` over a 5-minute interval.
+Similarly, in the [app]``CALL-SUMMARY`` domain, there will be separate counters indicating the number of call attempts received by the call agent for ISUP, H323 and SIP during the measurement program interval. 
+
+=== Measurement Programs[[_statistics.xml_62197]]
+
+A measurement program monitors a group of statistics in a particular domain and reports them to the configured output location at configured intervals.
+The `ADD-MP` MMI command can be used to add a measurement program to the call agent.
+When a new measurement program is added, the following information can be configured: 
+
+* The domain to be monitored – note that only one domain can be monitored by a measurement program.
+* The categories to be monitored – if no categories are specified, all categories are monitored.
+* The items to be monitored – if no items are specified, all items are monitored.
+* The start time of the measurement program – if no start time is specified, the measurement program starts immediately.
+* The reporting period (in minutes) of the measurement program.
+* The number of reports to be produced – if the number of reports is not specified, the measurement program continues until stopped by the `DEL-MP` MMI command.
+* The output location (file and/or socket ) to which the reports should be written by the measurement program – if no output is specified, the default output location, as indicated in the [app]``Reporter.Stream`` parameter in the [app]``openCallAgent.conf`` configuration, is used
+
+The call agent can support multiple measurement programs simultaneously.
+These measurement programs act independently of each other and they can monitor the same or different statistics groups.
+The measurement programs can report to the same or different output locations at the same or different times. 
+
+It is possible to define, for example, one measurement program that reports on all categories and items for the [app]``CALL-SUMMARY`` domain on an hourly basis and writes the output to a file, while another measurement program reports only the number of ISUP call attempts received by the call agent every five minutes and writes the output to a socket. 
+
+==== Statistics Output Formats
+
+If no output is specified, but default statistics are sent to file configured in [app]``openCallAgent.conf`` file under: [app]``package = Statistics``
+
+`[app]``Reporter.stream = file%/``opt/openCallAgent/statistics/openCallAgent_statistics.txt`
+
+Statistics my optionally be output to a file and/or socket by adding output to the ADD-MP command. 
+
+*Example:* Using the Add MP command to send statistics to file [app]``/tmp/stats.txt`` and to any connections to port 23456. 
+
+`add mp:domain=QOS,period=1,output=file%/tmp/``` stats.txt&acceptor%23456``
+
+==== Measurement Program Output Format
+
+The reports sent to the configured output are formatted as follows: 
+
+
+----
+ID: <measurement_program_id>
+Iteration: Continual|<iteration_number> of <total_iteration>
+Domain: <DomainName>
+Period: <Period_in_minutes>
+Generated: <YYYY-MM-DDThh:mm:ss>
+Items\Categories <categ1> <categ2> <categ3>
+         <item1> <val11>  <val12>  <val13>
+         <item2> <val21>  <val22>  <val23>
+         <item3> <val31>  <val32>  <val33>
+         <item4> <val41>  <val42>  <val43>
+----
+
+==== Statistics Output Example
+
+Each measurement program generates one report at the end of each measurement period (see the example below). 
+
+[cols="1a", frame="topbot", options="header"]
+|===
+| Example Measurement Program Report
+
+
+|
+
+----
+ID:        131092
+Iteration: Continual
+Domain:    CALL-SUMMARY
+Period:    1 minutes
+Generated: 2010-05-25T11:00:37
+Items\Categories              ISUP        SIP   
+ActiveCalls                   0A          0A      
+Bandwidth                     0.00A       0.00A   
+CallDurationTimeAvg           0A          0A      
+CallDurationTimeMax           0A          0A      
+CallDurationTimeMin           0A          0A      
+CallsAnswered                 0           0     
+CallsAttempted                0           0     
+CallsBusy                     0           0     
+CallsDiverted                 0           0     
+CallsDroppedCongested         0           0     
+CallsDroppedInConversation    0           0     
+CallsFailedAtInputQueue       0           0     
+CallsFailedByOrigHalf         0           0     
+CallsFailedByTermHalf         0           0     
+CallsNoAnswer                 0           0     
+CallsRejected                 0           0     
+CallsReleased                 0           0     
+CallsRerouted                 0           0     
+CallsReroutedDueToCongestion  0           0     
+SeizedCircuits                0A          0A
+
+----
+|===
+
+[NOTE]
+====
+As shown in the above example, all absolute count values are followed by the letter A, allowing the user to distinguish between absolute and relative counts.
+====
+
+== Call Agent Statistics
+
+The call agent supports the following domains: 
+
+* [app]``CALL-SUMMARY``
+* [app]``CALL-RELEASE-REASONS``
+* [app]``MGCP-SUMMARY``
+* [app]``MGCP-DETAILED``
+* [app]``BCM``
+* [app]``PERFORMANCE``
+* [app]``QOS``
+* [app]``REDUNDANCY``
+
+A description of the categories and items for each of these domains is provided in the following sections and example measurement programs and reports are also included. 
+
+=== CALL-SUMMARY Domain
+
+The [app]``CALL-SUMMARY`` statistics record various call-related statistics for all calls.
+Statistics maybe monitored on a per-call control protocol basis or per-route direction basis. 
+
+==== CALL-SUMMARY Categories
+
+There are two categories for each call control protocol supported by the call agent, one for [app]``in`` and one for [app]``out`` (for example: SIP_IN, SIP_OUT, ISUP_IN, ISUP_OUT, H323_IN or H323_OUT). There are also two categories for each route and each call-limit-group configured in __openCA__, one for [app]``in`` and one for [app]``out``. 
+
+*Example:* the route [app]``RouteName`` would have 2 categories: [app]``RouteName_In`` and [app]``RouteName_Out``.
+Subscribers have two categories named [app]``SUBSCRIBER_ROUTE_In`` and [app]``SUBSCRIBER_ROUTE_Out``.
+A call-limit-group [app]``groupName`` would have two categories named [app]``groupName_In`` and [app]``groupName_Out``. 
+
+.CALL-SUMMARY Categories
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Category
+| Description
+
+|
+
+`ProtocolName`
+|This category collects call-related statistics for all calls that originate in the specified protocol or route direction or call-limit-group direction. Allowed values are: [app]``SIP_IN``, [app]``SIP_OUT``, [app]``ISUP_IN``, [app]``ISUP_OUT``, [app]``H323_IN``, [app]``H323_OUT``, [app]``groupName_In``, [app]``groupName_Out``, [app]``RouteName_In``, [app]``RouteName_Out``, [app]``SUBSCRIBER_ROUTE_In`` and [app]``SUBSCRIBER_ROUTE_Out``.
+|===
+
+==== CALL-SUMMARY Items
+
+By default all items are included in the statistic output. 
+
+.CALL-SUMMARY Items
+[cols="1,1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+| SNMP Type
+
+|
+
+`AnswerSeizureRatio`
+|``CallsAnswered``(see below) divided by ``CallsAttempted``(see below) times ``100``.
+|Gauge
+
+|
+
+`Bandwidth`
+|The bandwidth is calculated using the selected codec during the SDP negotiation. The bandwidth for each codec may be configured in the [app]``openCallAgent.conf`` file (see <<_configfiles.xml_83821>> ).
+|Gauge
+
+|
+
+`CallDurationTimeAvg`
+|
+
+The average length of time that calls were in conversation phase over the course of the previous measurement period.
+
+This is measured only for calls that were released during the previous period.
+|Gauge
+
+|
+
+`CallDurationTimeMax`
+|The longest conversation time of any of the calls that were released in the previous measurement period.
+|Gauge
+
+|
+
+`CallDurationTimeMin`
+|The shortest conversation time of any of the calls that were released in the previous measurement period.
+|Gauge
+
+|
+
+`CallsActive`
+|The number of calls active (i.e. calls in conversation phase) at the time the report is written.
+|Counter
+
+|
+
+`CallsAnswered`
+|The number of calls that were answered in the previous measurement period.
+|Counter
+
+|
+
+`CallsAnsweredRateLimit`
+|The number of calls that were answered for the Route conforming the rate limits in the direction of the route in the previous measurement period.
+|Counter
+
+|
+
+`CallsAnsweredRateLimitPerSecond`
+|The number of calls that were answered for the Route per second conforming the rate limits in the direction of the route in the previous measurement period.
+|Counter
+
+|
+
+`CallsAttempted`
+|The number of calls that were attempted (i.e. for which an initial request was received by the call agent) in the previous measurement period).
+|Counter
+
+|
+
+`CallsAttemptedPerSecond`
+|The number of calls that were attempted per second (i.e. for which an initial request was received by the call agent) in the previous measurement period).
+|Counter
+
+|
+
+`CallsBusy`
+|The number of calls released due to the subscriber being Busy.
+|Counter
+
+|
+
+`CallsDiverted`
+|The number of calls diverted by SIP 302 redirect or subscriber configuration.
+|Counter
+
+|
+
+`CallsDroppedCongested`
+|The number of calls dropped due to output route(s) having no free capacity, or due to release from remote switch with the reason of Congestion.
+|Counter
+
+|
+
+`CallsDroppedIn​Conversation`
+|The number of calls that were answered, entered conversation phase, but were then released due to an error condition, in the previous measurement period.
+|Counter
+
+|
+
+`CallsDroppedRateExceeded`
+|The number of calls that were dropped since they exceeded the rate limit specified for the direction of the route, in the previous measurement period.
+|Counter
+
+|
+
+`CallsDroppedRateExceededPerSecond`
+|The number of calls that were dropped per second since they exceeded the rate limit specified for the direction of the route, in the previous measurement period.
+|Gauge
+
+|
+
+`CallsFailedAtInputQueue`
+|The number of calls that were attempted (i.e. for which an initial request was received by the call agent), but failed to receive any processing, due to call agent congestion, in the previous measurement period.
+|Counter
+
+|
+
+`CallsFailedByOrigHalf`
+|The number of calls that were ended by the originating half of the call in the previous measurement period.
+|Counter
+
+|
+
+`CallsFailedByTermHalf`
+|The number of calls that were ended by the terminating half of the call in the previous measurement period.
+|Counter
+
+|
+
+`CallsNoAnswer`
+|The number of calls that were released in the previous measurement period due to No Answer or from a timeout by __openCA__.
+|Counter
+
+|
+
+`CallsRejected`
+|The number of calls rejected include all released calls except: counter no answer, busy and redirection.
+|Counter
+
+|
+
+`CallsReleased`
+|The total number of calls that were release in the previous measurement period.
+|Counter
+
+|
+
+`CallsReleasing`
+|The number of calls in releasing phase at the time the report is written.
+|Counter
+
+|
+
+`CallsRerouted`
+|The number of calls re-routed.
+|Counter
+
+|
+
+`CallsReroutedDueTo`
+
+`Congestion`
+|Calls rerouted due to output route(s) having no free capacity or due to release from remote switch with the reason of Congestion.
+|Counter
+
+|
+
+`CallsSettingUp`
+|The number of calls in SettingUp phase at the time the report is written.
+|Counter
+
+|
+
+`CallsTotal`
+|The number of calls in total (i.e. calls in any phase) at the time the report is written.
+|Counter
+
+|
+
+`SeizedCircuits`
+|The number of circuits seized at the time the report is written.
+|Counter
+
+|
+
+`TrafficVolumeHold`
+|Average of seized circuits sampled every 2 secs. Only included if stat includes ISUP route.
+|Gauge
+
+|
+
+`TrafficVolumeTalk`
+|Average of active circuits sampled every 2 secs. Only included if stat includes ISUP route.
+|Gauge
+|===
+
+==== Example of CALL-SUMMARY Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``add mp:domain=CALL-SUMMARY,PERIOD=1,iterations=6, categories=SIP&rAbacus_In&rAbacus_Out,output=file%/tmp/stats.txt``
+
+|Response
+|
+
+----
+MP: 131093
+Domain: CALL-SUMMARY
+Categories: SIP, rAbacus_In, rAbacus_Out
+Items: 
+Period: 1 minute(s)
+Iterations: 1 of 6
+Start time: 2010-05-25T11:55:16
+Output: default
+----
+|===
+
+``
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Statistics file
+|
+
+----
+ID:        131093
+Iteration: 1 of 6
+Domain:    CALL-SUMMARY
+Period:    1 minutes
+Generated: 2010-05-25T11:56:16
+Items\Categories                  SIP      rAbacus_In rAbacus_Out
+ActiveCalls                        0A         0A          0A
+Bandwidth                          0.00A      0.00A       0.00A
+CallDurationTimeAvg                0A         0A          0A
+CallDurationTimeMax                0A         0A          0A
+CallDurationTimeMin                0A         0A          0A
+CallsAnswered                       0          0           0
+CallsAttempted                      0          0           0
+CallsBusy                           0          0           0
+CallsDiverted                       0          0           0
+CallsDroppedCongested               0          0           0
+CallsDroppedInConversation          0          0           0
+CallsFailedAtInputQueue             0          0           0
+CallsFailedByOrigHalf               0          0           0
+CallsFailedByTermHalf               0          0           0
+CallsNoAnswer                       0          0           0
+CallsRejected                       0          0           0
+CallsReleased                       0          0           0
+CallsRerouted                       0          0           0
+CallsReroutedDueToCongestion        0          0           0
+SeizedCircuits                     0A         0A          0A
+TrafficVolumeHold                 N/A    0.0000A     0.0000A
+----
+|===
+
+=== CALL-RELEASE-REASONS Domain
+
+The [app]``CALL-RELEASE-REASONS`` statistics record the release reasons for all released calls.
+These reasons can include both positive reasons (for example, one of the call parties ended the call by hanging up) and negative reasons (for example, call handling problems in the call agent or in the network). 
+
+==== CALL-RELEASE-REASONS Categories
+
+There are two categories for each call control protocol supported by the call agent, one for [app]``in`` and one for [app]``out`` (for example: SIP_IN, SIP_OUT, ISUP_IN, ISUP_OUT, H323_IN or H323_OUT). There are also 2 categories for each route and each call-limit-group configured in __openCA__, one for [app]``in`` and one for [app]``out``. 
+
+*Example:* the route [app]``RouteName`` would have 2 categories [app]``RouteName_In`` and [app]``RouteName_Out``.
+Subscribers have two categories named [app]``SUBSCRIBER_ROUTE_In`` and [app]``SUBSCRIBER_ROUTE_Out``.
+A call-limit-group [app]``groupName`` would have two categories named [app]``groupName_In`` and [app]``groupName_Out``. 
+
+.CALL-RELEASE-REASONS Categories
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Category
+| Description
+
+|
+
+`ProtocolName`
+|This category collects call-related statistics for all calls that originate in the specified protocol or route direction. Allowed values are: [app]``SIP``, [app]``ISUP``, [app]``H323``, [app]``groupName_In``, [app]``groupName_Out``, [app]``RouteName_In``, [app]``RouteName_Out``, [app]``SUBSCRIBER_ROUTE_In`` and [app]``SUBSCRIBER_ROUTE_Out``.
+|===
+
+==== CALL-RELEASE-REASONS Items
+
+There is one Item for each release reason configured in the call agent.
+You can show the full list of items using the MMI command [app]``LST-RELEASE-REASON``.
+Only release reasons that have non-zero values are displayed in the output. 
+
+.CALL-RELEASE-REASONS Items
+[cols="1,1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+| SNMP Type
+
+|
+
+`ReleaseReasonName`
+|One of the release reasons configured in the call agent.This item identifies one particular reason for which a call can be released and counts the number of calls released using this release reason (in each category) in the previous measurement period. Allowable values are displayed with the MMI command [app]``LST-RELEASE-REASON``. By default all allowable values are included. 
+
+**Note: **If items are explicitly listed, they are displayed even if they have all zero outputs.
+|Counter
+|===
+
+==== Example of CALL-RELEASE-REASONS Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``add mp:domain=CALL-RELEASE-REASONS, items=MEDIA_REQUEST_TIMEOUT&NORMAL_CALL_CLEARING&NO_CIRCUIT_CHANNEL_AVAILABLE &TEMPORARY_FAILURE,period=1,categories=ISUP&r4000_In&r4000_Out``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+----
+MP: 131097
+Domain: CALL-RELEASE-REASONS
+Categories: ISUP, r4000_In, r4000_Out
+Items: MEDIA_REQUEST_TIMEOUT, NORMAL_CALL_CLEARING, NO_CIRCUIT_CHANNEL_AVAILABLE, TEMPORARY_FAILURE
+Period: 1 minute(s)
+Iterations: Continual
+Start time: 2010-05-25T13:42:55
+Output: default
+----
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Statistics file
+|
+
+----
+ID:        131097
+Iteration: Continual
+Domain:    CALL-RELEASE-REASONS
+Period:    1 minutes
+Generated: 2010-05-25T13:43:55
+Items\Categories                    ISUP     r4000_In r4000_Out
+MEDIA_REQUEST_TIMEOUT               0        0         0
+NORMAL_CALL_CLEARING                0        0         0
+NO_CIRCUIT_CHANNEL_AVAILABLE        0        0         0
+----
+|===
+
+=== MGCP-SUMMARY Domain
+
+The [app]``MGCP-SUMMARY`` statistics summarises the MGCP message totals that are sent to and received from each media gateway or media server configured in the call agent. 
+
+==== MGCP-SUMMARY Categories
+
+.MGCP-SUMMARY Categories
+[cols="1,1,1", frame="topbot", options="header"]
+|===
+| Category
+| Description
+| SNMP Type
+
+|
+
+`CRCX-T`
+|The number of CRCX (create connection) requests transmitted by the call agent
+                  per item in the previous measurement period.
+|Counter
+
+|
+
+`Err-R`
+|The number of error responses received by the call agent per item in the
+                  previous measurement period.
+|Counter
+
+|
+
+`OK-R`
+|The number of positive responses (i.e. 2xx [app]``OK``
+                  messages) received by the call agent per item in the previous measurement
+                  period.
+|Counter
+
+|
+
+`RSIP-R`
+|The number of RSIP (restart in progress) messages received by the call agent
+                  per item in the previous measurement period.
+|Counter
+
+|
+
+`Total-R`
+|The total number of messages received by the call agent per item in the
+                  previous measurement period.
+|Counter
+
+|
+
+`Total-Ret`
+|The total number of retransmissions transmitted by the call agent per item in
+                  the previous measurement period.
+|Counter
+
+|
+
+`Total-T`
+|The total number of messages transmitted by the call agent per item in the
+                  previous measurement period. This total does not include retransmissions of
+                  messages.
+|Counter
+|===
+
+==== MGCP-SUMMARY Items
+
+There is one Item for each media gateway and media server configured in the call agent.
+There is also one more item that is used to capture the receipt of messages from unknown MGCP sources.
+This item counts all attempted security breaches of the call agent through MGCP. 
+
+.MGCP-SUMMARY Items
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+
+|
+
+`UnknownMGCPSource`
+|This item represents an unconfigured source of MGCP messages, thus capturing
+                  statistics on attempted MGCP security breaches.
+
+|
+
+`MGorMS_Name`
+|The name of one of the media gateways and media servers configured in the
+                  call agent.
+|===
+
+==== Example of MGCP-SUMMARY Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``ADD-MP: DOMAIN=MGCP-SUMMARY, ITERATIONS=1, PERIOD=1``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+----
+ID:        23
+Iteration: 1 of 1
+Domain:    MGCP-SUMMARY
+Period:    1 minutes
+Generated: 2003-06-25T13:26:00
+   Items\Categories   CRCX-T    Err-R   OK-R   RSIP-R  Total-R Total-Ret Total-T
+  UnknownMGCPSource     0        0       0      0       0       0         0
+       ms.acme.com      0        0       0      0       0       0         0
+taipan.in.acme.com      3        0       3      0       0       0         3
+----
+|===
+
+=== MGCP-DETAILED Domain
+
+The [app]``MGCP-DETAILED`` statistics records totals for all MGCP messages sent to and received from each media gateway or media server configured in the call agent. 
+
+==== MGCP-DETAILED Categories
+
+.MGCP-DETAILED Categories.
+[cols="1,1,1", frame="topbot", options="header"]
+|===
+| Category
+| Description
+| SNMP Type
+
+|
+
+`AUEP-T`
+|The number of AUEP (audit endpoint) requests transmitted by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`CRCX-T`
+|The number of CRCX (create connection) requests transmitted by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`DLCX-R`
+|The number of DLCX (delete connection) requests received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`DLCX-T`
+|The number of DLCX (delete connection) requests transmitted by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`Err-R`
+|The number of error returns received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`MDCX-T`
+|The number of MDCX (modify connection) requests transmitted by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`NTFY-R`
+|The number of NTFY (notify) requests received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`NonStd-R`
+|The number of non-MGCP compliant messages received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`OK-R`
+|The number of positive responses (i.e. 2xx [app]``OK`` messages) received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`RSIP-Disc-R `
+|The number of [app]``RSIP-Disconnect`` messages (indicating a restart in progress due to loss of IP connectivity between the call agent and MG/MS) received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`RSIP-Forced-R`
+|
+
+The number of [app]``RSIP-Forced`` or [app]``RSIP-Graceful`` messages (indicating either an immediate or gradual shutdown of the MG/MS) received by the call agent per item in the previous measurement period. 
+
+**Note: **the reason that both graceful and forced RSIP messages are counted in this one item is because the call agent treats all [app]``RSIP-Graceful`` messages as if they were [app]``RSIP-Forced``.
+|Counter
+
+|
+
+`RSIP-Restart-R`
+|The number of [app]``RSIP-Restart`` messages (indicating that a restart of the MG/MS is in progress) received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`Total-R`
+|The total number of messages received by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`Total-Ret`
+|The total number of retransmissions transmitted by the call agent per item in the previous measurement period.
+|Counter
+
+|
+
+`Total-T`
+|The total number of messages transmitted by the call agent per item in the previous measurement period. This total does not include retransmissions.
+|Counter
+|===
+
+==== MGCP-DETAILED Items
+
+There is one item for each media gateway and media server configured in the call agent.
+There is also one more item that is used to capture the receipt of messages from unknown MGCP sources.
+This item counts all attempted security breaches of the call agent through MGCP. 
+
+.MGCP-DETAILED Items.
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+
+|
+
+`UnknownMGCPSource`
+|This item represents an unconfigured source of MGCP messages, thus capturing statistics on attempted MGCP security breaches.
+
+|
+
+`MGorMS_Name`
+|The name of one of the media gateways or media servers configured in the call agent.
+|===
+
+==== Example of MGCP-DETAILED Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``ADD-MP: DOMAIN=MGCP-DETAILED,ITERATIONS=2,PERIOD=1, OUTPUT=`"file%/tmp/MGCPHistory.txt`"``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+[listing]
+....
+ID:        2
+Iteration: 1 of 2
+Domain:    MGCP-DETAILED
+Period:    1 minutes
+Generated: 2003-09-17T16:50:45
+   Items\Categories AUEP-T  CRCX-T DLCX-R DLCX-T Err-R MDCX-T NTFY-R NonStd-R OK-R RSIP-Disc-R RSIP-Forced-R RSIP-Restart-R Total-R Total-Ret Total-T
+  UnknownMGCPSource  0       0      0      0      0     0      0      0        0    0           0             0              0       0         0
+         mg1.com.au  0       0      0      0      0     0      0      0        0    0           0             0              0       0         0
+ taipan.in.acme.com  2       0      0      0      0     0      0      0        2    0           0             0              0       0         2
+---------------------------------------
+ID:        2
+Iteration: 2 of 2
+Domain:    MGCP-DETAILED
+Period:    1 minutes
+Generated: 2003-09-17T16:51:45
+   Items\Categories AUEP-T CRCX-T DLCX-R DLCX-T Err-R MDCX-T NTFY-R NonStd-R OK-R RSIP-Disc-R RSIP-Forced-R RSIP-Restart-R Total-R Total-Ret Total-T
+  UnknownMGCPSource  0      0      0      0      0     0      0      0        0    0           0             0              0        0        0
+         mg1.com.au  0      0      0      0      0     0      0      0        0    0           0             0              0        0        0
+....
+|===
+
+=== BCM Domain
+
+The BCM statistics record the statistics relating to attempted executions of all types of CS2 services in the call agent. 
+
+[NOTE]
+====
+No statistics are reported for the BCM domain until at least one service has been activated.
+====
+
+==== BCM Categories
+
+.BCM Categories
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Category
+| Description
+
+|
+
+`SuccessfulTrigger`
+|
+
+This category indicates the number of times a service (item) has been successfully invoked in the previous measurement period. 
+|===
+
+==== BCM Items
+
+There is one BCM Item for each activated service in the call agent. 
+
+.BCM Items
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+
+|
+
+`CS2:ServiceName`
+|One of the CS2 services currently activated in the call agent. 
+|===
+
+==== Example of BCM Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``ADD-MP: DOMAIN=BCM, ITERATIONS=1, PERIOD=10, OUTPUT=`"acceptor%52183`"``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+----
+ID:        3
+Iteration: 1 of 1
+Domain:    BCM
+Period:    10 minutes
+Generated: 2003-06-25T16:32:00
+     Items\Categories SuccessfulTrigger
+         CS2:FLR            3
+          CS2:NP            7
+----
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``ADD-MP: DOMAIN=BCM, PERIOD=10, CATEGORIES=SuccessfulTrigger``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+[listing]
+....
+ID:        33
+Iteration: Continual
+Domain:    BCM
+Period:    10 minutes
+Generated: 2003-06-25T16:32:00
+     Items\Categories SuccessfulTrigger
+         CS2:FLR            3
+          CS2:NP            7
+         CS2:VID            2
+---------------------------------------
+ID:        33
+Iteration: Continual
+Domain:    BCM
+Period:    10 minutes
+Generated: 2003-06-25T16:42:00
+     Items\Categories SuccessfulTrigger
+         CS2:FLR            1
+          CS2:NP           10
+         CS2:VID            4
+---------------------------------------
+ID:        33
+Iteration: Continual
+Domain:    BCM
+Period:    10 minutes
+Generated: 2003-06-25T16:52:00
+     Items\Categories SuccessfulTrigger
+         CS2:FLR            5
+          CS2:NP            6
+         CS2:VID            3
+....
+|===
+
+=== PERFORMANCE Domain[[_statistics.xml_45365]]
+
+The [app]``PERFORMANCE`` statistics record the variation in call agent load and performance by measuring the variations in queue length, cross-office delays, and time to Alerting for different call types. 
+
+[NOTE]
+====
+These absolute statistics are derived from relative statistics (gathered by the call agent over a 5-min period).
+====
+
+==== PERFORMANCE Categories
+
+.Performance categories.
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Category
+| Description
+
+|
+
+`AVERAGE`
+|The average value of each item, as measured in the 5-minute interval before the report was written.
+
+|
+
+`MAXIMUM`
+|The maximum value of each item, as measured in the 5-minute interval before the report was written.
+
+|
+
+`MINIMUM `
+|The minimum value of each item, as measured in the 5-minute interval before the report was written.
+|===
+
+==== PERFORMANCE Items
+
+There is one [app]``OrigCrossSetupRequestTime`` and one [app]``OrigTimeToAlerting`` item for each call control protocol supported by the call agent. 
+
+.Performance items
+[cols="1,1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+| SNMP Type
+
+|
+
+`[replaceable]``<ProtocolName>``CrossSetupRequestTime`
+|The length of time, in milliseconds, between the arrival of a call setup request for the specified protocol and the transmission of the equivalent request on the outgoing side.
+|Gauge
+
+|
+
+`[replaceable]``<ProtocolName>``TimeToAlerting`
+|The length of time, in milliseconds, between the arrival of a call setup request for the specified protocol and the transmission of the appropriate alerting notification back to the originator.
+|Gauge
+
+|
+
+`SigMessagesQueueLength`
+|
+
+The length of the call agent Signalling Message handling queue.
+
+This is the queue whose length defines the overload status of the call agent.
+Only call-related signalling messages are included in the queue.
+All signalling messages for all protocols are inserted into this queue.
+|Gauge
+|===
+
+==== Example of PERFORMANCE Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``ADD-MP: DOMAIN=PERFORMANCE, ITERATIONS=3, PERIOD=5, OUTPUT=`"file%/tmp/CAPerformanceHist.txt`"``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+[listing]
+....
+ID:        13
+Iteration: 1 of 3
+Domain:    PERFORMANCE
+Period:    5 minutes
+Generated: 2003-07-03T14:10:50
+                  Items\Categories  AVERAGE  MAXIMUM    MINIMUM
+         ISUPCrossSetupRequestTime       0A       0A       0A
+                ISUPTimeToAlerting       0A       0A       0A
+         H323CrossSetupRequestTime       0A       0A       0A
+                H323TimeToAlerting       0A       0A       0A
+          SIPCrossSetupRequestTime       0A       0A       0A
+                 SIPTimeToAlerting       0A       0A       0A
+            SigMessagesQueueLength       0A       0A       0A
+---------------------------------------
+ID:        13
+Iteration: 2 of 3
+Domain:    PERFORMANCE
+Period:    5 minutes
+Generated: 2003-07-03T14:15:50
+                  Items\Categories  AVERAGE  MAXIMUM  MINIMUM
+         ISUPCrossSetupRequestTime      27A      30A      23A
+                ISUPTimeToAlerting      39A      57A      30A
+         H323CrossSetupRequestTime       0A       0A       0A
+                H323TimeToAlerting       0A       0A       0A
+          SIPCrossSetupRequestTime       0A       0A       0A
+                 SIPTimeToAlerting       0A       0A       0A
+            SigMessagesQueueLength       1A       2A       0A
+---------------------------------------
+ID:        13
+Iteration: 3 of 3
+Domain:    PERFORMANCE
+Period:    5 minutes
+Generated: 2003-07-03T14:20:50
+                  Items\Categories  AVERAGE  MAXIMUM  MINIMUM
+         ISUPCrossSetupRequestTime      27A      54A      23A
+                ISUPTimeToAlerting      42A     132A      31A
+         H323CrossSetupRequestTime       0A       0A       0A
+                H323TimeToAlerting       0A       0A       0A
+          SIPCrossSetupRequestTime       0A       0A       0A
+                 SIPTimeToAlerting       0A       0A       0A
+....
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``ADD-MP: DOMAIN=PERFORMANCE, PERIOD=5, ITEMS= ISUPTimeToAlerting &SIP SIPTimeToAlerting``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+[listing]
+....
+ID:        35
+Iteration: Continual
+Domain:    PERFORMANCE
+Period:    5 minutes
+Generated: 2003-07-03T14:10:50
+              Items\Categories  AVERAGE  MAXIMUM  MINIMUM
+            ISUPTimeToAlerting       0A       0A       0A
+            H323TimeToAlerting       0A       0A       0A
+             SIPTimeToAlerting       0A       0A       0A
+---------------------------------------
+ID:        35
+Iteration: Continual
+Domain:    PERFORMANCE
+Period:    5 minutes
+Generated: 2003-07-03T14:15:50
+              Items\Categories  AVERAGE  MAXIMUM  MINIMUM
+            ISUPTimeToAlerting      39A      57A      30A
+            H323TimeToAlerting       0A       0A       0A
+             SIPTimeToAlerting       0A       0A       0A
+---------------------------------------
+ID:        35
+Iteration: Continual
+Domain:    PERFORMANCE
+Period:    5 minutes
+Generated: 2003-07-03T14:20:50
+              Items\Categories  AVERAGE  MAXIMUM  MINIMUM
+            ISUPTimeToAlerting      42A     132A      31A
+            H323TimeToAlerting       0A       0A       0A
+....
+|===
+
+=== QOS Domain
+
+The QOS domain provides a statistic that represents the total Quality of Service provided by __openCA__.
+The values are calculated from [app]``CALL-SUMMARY`` values every minute and the output value is the average over the last 10 minutes (by default). This can be controlled by the following configuration parameter in the [app]``openCallAgent.conf`` file: 
+
+`package=Statistics`
+
+==== QOS Category
+
+There is only one available category named [app]``TOTAL``. 
+
+==== QOS Items
+
+.QOS items
+[cols="1,1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+| SNMP Type
+
+|QoS_1
+|Calculated by:
+
+`[app]``100 * (CallsAttempted - CallsRejected - CallsDroppedInConversation) / CallsAttempted```When no calls have been attempted, QOS is 100.
+|Gauge
+
+|QoS_2
+|Calculated by:
+
+`100 * CallsReleased / (CallsReleased + CallsDropped)`When no calls have been released, QOS is 100.
+|Gauge
+|===
+
+==== Example of QOS Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``add mp:domain=QOS,period=1``
+
+|Response
+|
+
+----
+MP: 131098
+Domain: QOS
+Categories: 
+Items: 
+Period: 1 minute(s)
+Iterations: Continual
+Start time: 2010-05-25T13:52:09
+Output: default
+----
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Statistics file
+|
+
+----
+ID:        131098
+Iteration: Continual
+Domain:    QOS
+Period:    1 minutes
+Generated: 2010-05-25T13:53:09
+Items\Categories TOTAL   
+QoS_1                100A
+----
+|===
+
+=== REDUNDANCY Domain
+
+The [app]``Redundancy``[[_statistics.xml_marker_1064683]] statistics record the uptime of the call agent and the number of times the call agent has changed over. 
+
+==== Redundancy Categories
+
+.Redundancy Categories
+[cols="1,1", frame="topbot", options="header"]
+|===
+| Category
+| Description
+
+|
+
+`Stats`
+|This category collects statistics for call agent redundancy.
+|===
+
+==== Redundancy Items
+
+.Redundancy Items.
+[cols="1,1,1", frame="topbot", options="header"]
+|===
+| Item
+| Description
+| SNMP Type
+
+|
+
+`ActiveUpSec`
+|The number of seconds that the currently active call agent has been active.
+|Gauge
+
+|
+
+`ChangeOverCount`
+|The number of times the call agent has changed over since it started up.
+|Gauge
+
+|
+
+`StandbyUpSec`
+|The number of seconds that the currently standby call agent has been standby.
+|Gauge
+
+|
+
+`SystemUpSec`
+|The number of seconds since the call agent started up.
+|Gauge
+|===
+
+==== Example of Redundancy Domain Measurement Program
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Command
+|``ADD-MP: DOMAIN=Redundancy, PERIOD=1, ITERATIONS=3, OUTPUT=`"acceptor%52310,file%/tmp/CARedundancy.txt`"``
+|===
+
+
+
+[cols="1,1", frame="none"]
+|===
+
+|Resulting MP Report
+|
+
+[listing]
+....
+ID:        1
+Iteration: 1 of 3
+Domain:    REDUNDANCY
+Period:    1 minutes
+Generated: 2003-07-30T16:34:42
+Items\Categories    stats
+     ActiveUpSec     165A
+ ChangeOverCount       0A
+    StandbyUpSec       0A
+     SystemUpSec     165A
+---------------------------------------
+ID:        1
+Iteration: 2 of 3
+Domain:    REDUNDANCY
+Period:    1 minutes
+Generated: 2003-07-30T16:35:42
+Items\Categories    stats
+     ActiveUpSec     225A
+ ChangeOverCount       0A
+    StandbyUpSec       0A
+     SystemUpSec     225A
+---------------------------------------
+ID:        1
+Iteration: 3 of 3
+Domain:    REDUNDANCY
+Period:    1 minutes
+Generated: 2003-07-30T16:36:42
+Items\Categories    stats
+     ActiveUpSec     285A
+ ChangeOverCount       0A
+    StandbyUpSec       0A
+....
+|===
+
+== Statistics Files
+
+The output for each measurement program can be configured to be written to a different file or socket.
+If no specific output is specified for a measurement program, the default output location is as specified in the [app]``Reporter.Stream`` entry in the [app]``Statistics`` package of [app]``openCallAgent.conf``. 
+
+=== Rollover
+
+Measurement program output files that are specified in the OUTPUT parameter of the `ADD-MP` MMI command have the file management configuration values (as specified in the [app]``Comms`` package) applied to them.
+The file management configuration values apply to the following: 
+
+* The default statistics output file (the one specified in the configuration file and used if no [app]``OUTPUT`` parameter is specified in the `ADD-MP` MMI command)
+* Any output files specified in the [app]``OUTPUT`` parameter
+
+Statistics files are rolled over at system start up or when either of the following occurs: 
+
+* The size limit for the current statistics file is reached.
++
+The maximum size of the current statistics file is the maximum total size of all statistics files (current and rolled over) divided by the number of statistics files.
+For example, if there are 50 files and the maximum size specified for [app]``File.MaxSize`` in the Comms package is 1000000 bytes, the maximum size for an individual file is 1000000 divided by 50, i.e.
+20000 bytes.
+If a further report is written to the current statistics file, the size would exceed the specified value.
+The current file is rolled over before the report is written; therefore, the maximum size is not exceeded. 
+* The age limit for the current statistics file is reached.
++
+The current statistics file is equal to or older than the interval that is specified in the [app]``File.RolloverPeriod`` configuration parameter of the [app]``Comms`` package (see <<_configfiles.xml_13993>>).
+
+When statistics file rollover occurs: 
+
+. The existing statistics file is closed.
+. The date and time are added to the closed file, e.g. [app]``openCallAgent_statistics.txt03_02_04_09:31:20``.
+. A new file with the original name (for example, [app]``openCallAgent_statistics.txt``) is created.
+
+When statistics files are rolled over, the total size of the group of files (the original plus each rolled over file) is checked against the allowed maximum file size specified in [app]``File.MaxSize``.
+If the total size exceeds this setting, the oldest files are deleted until the total size is less than the limit set in [app]``File.MaxSize``. 
+
+If the maximum number of statistics files is exceeded, the oldest file is deleted.
+The maximum number of statistics files can be configured through [app]``File.MaxFileCount`` in the [app]``comms`` package. 
