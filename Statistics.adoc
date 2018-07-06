@@ -22,6 +22,7 @@ This chapter contains information about statistics in the _openCA_ softswitch.
 --
 A statistics measurement program retrieves statistics from the system at selected periods.
 These statistics are then sent as output to the location configured for the measurement program (see <<configfiles.adoc#13993,Configuration Files>> for more information). Statistics can be either absolute or relative and can have simple counts or timers. 
+
 .UML Diagram Example
 [uml,file="uml-example.png"]
 --
@@ -50,6 +51,7 @@ enum TimeUnit {
 
 annotation SuppressWarnings
 --
+
 .Statistic types available in _openCA_
 [cols="1a,1a", frame="topbot", options="header"]
 |===
